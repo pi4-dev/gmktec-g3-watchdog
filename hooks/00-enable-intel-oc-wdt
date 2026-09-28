@@ -1,0 +1,25 @@
+#!/bin/sh
+set -eu
+
+MARKER="# Managed by gmktec-g3-watchdog"
+
+for src in /usr/lib/modprobe.d/blacklist_proxmox-kernel-*.conf; do
+    [ -e "$src" ] || continue
+
+    dst="/etc/modprobe.d/$(basename "$src")"
+
+    if [ ! -e "$dst" ]; then
+        {
+            echo "$MARKER"
+            cat "$src"
+        } >"$dst"
+    elif grep -qxF "$MARKER" "$dst"; then
+        {
+            echo "$MARKER"
+            cat "$src"
+        } >"${dst}.tmp"
+        mv "${dst}.tmp" "$dst"
+    fi
+
+    sed -i '/^[[:space:]]*blacklist[[:space:]]\+intel_oc_wdt\([[:space:]]\|$\)/d' "$dst"
+done
